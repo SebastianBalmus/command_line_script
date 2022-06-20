@@ -1,4 +1,4 @@
-from ScriptClass import *
+from script_class import *
 
 
 def main():
@@ -9,12 +9,12 @@ def main():
     data = ScriptData()
     data.read_data()
 
-    # Get the method list of the ScriptActions class
-    method_list = globals()['ScriptActions']
+    # Instantiate a ScriptActions object in order to use the class methods
+    actions_object = ScriptActions()
 
     # Call the required method according to the script arguments
-    method = getattr(method_list, str(argument_list.action))
-    method(argument_list, data.header, data.rows)
+    action = getattr(actions_object, str(argument_list.action))
+    action(argument_list, data.header, data.rows)
 
 
 if __name__ == '__main__':

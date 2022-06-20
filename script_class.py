@@ -15,27 +15,35 @@ class ScriptData:
         self.rows = []
         self.zip_file = 'myFile0.zip'
         self.csv_file = 'myFile0.csv'
+        self.max_len = []
 
     def read_data(self):
         with ZipFile(self.zip_file) as zf:
             with zf.open(self.csv_file, 'r') as data:
                 reader = csv.reader(TextIOWrapper(data, 'utf-8'))
+
                 # Keep the header, we might need it later
                 self.header = next(reader)
-                self.rows = []
+
+                # Generate a list of zeros of length equal to the length of one row
+                self.max_len = [0] * len(self.header)
+
+                # Read every row and check the max length of every field
                 for row in reader:
                     self.rows.append(row)
+                    self.get_max_row_width(row)
 
         # Reformatting the employment date, to match the birthday
         for i in range(len(self.rows)):
             self.rows[i][8] = datetime.datetime.strptime(self.rows[i][8], "%Y-%m-%d").strftime("%d-%m-%Y")
 
-    @staticmethod
-    def myFunc():
-        print('hi')
+    def get_max_row_width(self, row):
+        for index, element in enumerate(row):
+            self.max_len[index] = max(self.max_len[index], len(element))
 
 
 class Arguments:
+
     def __init__(self):
         arg_parser = argparse.ArgumentParser()
         possible_actions = ['sort', 'search', 'filter', 'count']
@@ -95,8 +103,10 @@ class ScriptActions:
 
     @staticmethod
     def sort(args, header, rows):
+
         if args.action_param not in header:
             print("There is no column called " + args.action_param)
+
         else:
             # Sort by the header index of the item
             rows = sorted(rows, key=operator.itemgetter(header.index(args.action_param)))
@@ -105,9 +115,11 @@ class ScriptActions:
 
     @staticmethod
     def search(args, header, rows):
+
         row_content = ''
         count_of_rows = 0
         colorama.init()
+
         for row in rows:
             if args.action_param in row:
                 row_content = row_content + str(row) + '\n'
@@ -115,6 +127,7 @@ class ScriptActions:
             if count_of_rows is args.limit:
                 break
         row_content = row_content.strip()
+
         # Highlight only the content of interest, like a CTRL+F
         row_content = row_content.replace(args.action_param,
                                           colorama.Fore.RED + args.action_param + colorama.Fore.RESET)
@@ -123,19 +136,25 @@ class ScriptActions:
 
     @staticmethod
     def filter(args, header, rows):
+
         if args.start_date is None and args.end_date is None:
             print(f'To filter the data, please provide the {colorama.Fore.RED}start date '
                   f'{colorama.Fore.RESET}and {colorama.Fore.RED}end date{colorama.Fore.RESET}')
             sys.exit()
+
+        # In this list, we will append the rows that respect the requirements
         result = []
+
         # Formatting the limits as dates
         lower_limit = time.strptime(args.start_date, "%d-%m-%Y")
         upper_limit = time.strptime(args.end_date, "%d-%m-%Y")
+
         for row in rows:
             current_iteration_date = time.strptime(row[header.index(args.action_param)], "%d-%m-%Y")
             # Checking if the date is in the desired interval. If it is, append the row to the result
             if lower_limit <= current_iteration_date <= upper_limit:
                 result.append(row)
+
         # Maybe we don't have enough people to reach the args.limit
         max_len = min(args.limit, len(result))
         for i in range(max_len):
@@ -146,6 +165,5 @@ class ScriptActions:
         counter = 0
         for row in rows:
             counter += row.count(args.action_param)
-        print(f'Columns searched: \n{header}')
+        print('Columns searched: {}'.format(', '.join(header)))
         print(f'{str(counter)} occurrences of word {args.action_param} found in the CSV.')
-
